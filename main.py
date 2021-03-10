@@ -18,6 +18,5 @@ board = [
 
 if __name__ == '__main__':
     solution = sudoku_ga.SudokuGeneticAlgorithm(board)
-    solution.create_population(10)
-    solution.find_fitness()
+    solution.solve()
     solution.print_boards()
