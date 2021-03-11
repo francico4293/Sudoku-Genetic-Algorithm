@@ -12,12 +12,13 @@ class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 1000
+        self._population_size = 1500
         self._generation = 0
         self._average_fitness = None
         self._crossover_rate = 80
         self._mutation_rate = 20
         self._fixed_values = []
+        self._best_solution = None
 
     def print_boards(self):  # TODO: Remove
         for member in self.get_population():
@@ -105,6 +106,10 @@ class SudokuGeneticAlgorithm(object):
 
     def _initial_population(self):
         """Randomly initializes the initial population."""
+        for row_index, row in enumerate(self._board_template):
+            for value_index, value in enumerate(row):
+                if value != '.':
+                    self._fixed_values.append([row_index, value_index])
         self._create_initial_population(self._population_size)
         for member in self._population:
             member.set_fitness(self._find_fitness("row", member.get_board()) +
@@ -155,7 +160,14 @@ class SudokuGeneticAlgorithm(object):
         return next_generation
 
     def _mutation(self):
-        pass
+        for member in self._population:
+            for row_index, row in enumerate(member.get_board()):
+                for value_index, value in enumerate(row):
+                    if [row_index, value_index] in self._fixed_values:
+                        continue
+                    else:
+                        if random.uniform(0, 100) >= 80:
+                            member.get_board()[row_index][value_index] = str(random.randint(1, 9))
 
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
@@ -163,14 +175,24 @@ class SudokuGeneticAlgorithm(object):
         print("Generation 0 Average Fitness", self._average_fitness)
         # self.print_boards()
 
-        for run in range(500):
+        for run in range(100):
             self._generation += 1
             self._population = self._crossover()
+            self._mutation()
 
             for member in self._population:
                 member.set_fitness(self._find_fitness("row", member.get_board()) +
                                    self._find_fitness("col", member.get_board()) +
                                    self._find_fitness("reg", member.get_board()))
+                if self._best_solution is None:
+                    self._best_solution = member
+                else:
+                    if member.get_fitness() > self._best_solution.get_fitness():
+                        self._best_solution = member
             self._selection_probability()
             self._fitness_average()
             print("Generation {} Average Fitness: {}".format(self._generation, self._average_fitness))
+
+        print(self._best_solution.get_fitness())
+        for row in self._best_solution.get_board():
+            print(row)
