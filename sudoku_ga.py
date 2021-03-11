@@ -4,12 +4,15 @@
 import random
 import copy
 import sudoku_board
+# TODO: Add a data member to keep track of current iteration and the average fitness score.
+# TODO: Consider having some kind of initialize method to create generation 1 and then from there begin the actual algo
 
 
 class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
+        self._population_size = 5
 
     def print_boards(self):  # TODO: Remove
         for member in self.get_population():
@@ -99,15 +102,39 @@ class SudokuGeneticAlgorithm(object):
         for member in self._population:
             member.set_probability((member.get_fitness() / total_fitness) * 100)
 
+    def _crossover(self):
+        roulette_wheel = {}
+        next_generation = []
+
+        lower_bound = 0
+        for member in self._population:
+            roulette_wheel[member] = [lower_bound, lower_bound + member.get_probability()]
+            lower_bound += member.get_probability()
+
+        while len(next_generation) < self._population_size:
+            parents = []
+            for something in range(2):
+                probability = random.uniform(0, 100)
+                for member in roulette_wheel.keys():
+                    if roulette_wheel[member][0] <= probability < roulette_wheel[member][1]:
+                        parents.append(member)
+
+            if parents[0].get_fitness() > parents[1].get_fitness():
+                child = parents[0].get_board()[:6] + parents[1].get_board()[6:]
+            else:
+                child = parents[1].get_board()[:6] + parents[0].get_board()[6:]
+
+            next_generation.append(child)
+
+    def _mutation(self):
+        pass
+
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
-        self._create_initial_population(5)
+        self._create_initial_population(self._population_size)
         for member in self._population:
             member.set_fitness(self._find_fitness("row", member.get_board()) +
                                self._find_fitness("col", member.get_board()) +
                                self._find_fitness("reg", member.get_board()))
-
         self._selection_probability()
-
-        for member in self._population:
-            print(member.get_probability())
+        self._crossover()

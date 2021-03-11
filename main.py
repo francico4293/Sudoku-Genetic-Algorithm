@@ -19,4 +19,5 @@ board = [
 if __name__ == '__main__':
     solution = sudoku_ga.SudokuGeneticAlgorithm(board)
     solution.solve()
+    print("First Generation:")
     solution.print_boards()
