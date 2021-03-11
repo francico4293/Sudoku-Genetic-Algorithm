@@ -12,7 +12,12 @@ class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 5
+        self._population_size = 1000
+        self._generation = 0
+        self._average_fitness = None
+        self._crossover_rate = 80
+        self._mutation_rate = 20
+        self._fixed_values = []
 
     def print_boards(self):  # TODO: Remove
         for member in self.get_population():
@@ -92,6 +97,22 @@ class SudokuGeneticAlgorithm(object):
 
         return fitness
 
+    def _fitness_average(self):
+        total_fitness = 0
+        for member in self._population:
+            total_fitness += member.get_fitness()
+        self._average_fitness = total_fitness / self._population_size
+
+    def _initial_population(self):
+        """Randomly initializes the initial population."""
+        self._create_initial_population(self._population_size)
+        for member in self._population:
+            member.set_fitness(self._find_fitness("row", member.get_board()) +
+                               self._find_fitness("col", member.get_board()) +
+                               self._find_fitness("reg", member.get_board()))
+        self._selection_probability()
+        self._fitness_average()
+
     def _selection_probability(self):
         """Determines the probability that a member of the population is selected
         for mating based on their fitness score."""
@@ -113,28 +134,43 @@ class SudokuGeneticAlgorithm(object):
 
         while len(next_generation) < self._population_size:
             parents = []
-            for something in range(2):
-                probability = random.uniform(0, 100)
+            for parent_selection in range(2):
+                rand = random.uniform(0, 100)
                 for member in roulette_wheel.keys():
-                    if roulette_wheel[member][0] <= probability < roulette_wheel[member][1]:
+                    if roulette_wheel[member][0] <= rand < roulette_wheel[member][1]:
                         parents.append(member)
+                        break
 
-            if parents[0].get_fitness() > parents[1].get_fitness():
-                child = parents[0].get_board()[:6] + parents[1].get_board()[6:]
-            else:
-                child = parents[1].get_board()[:6] + parents[0].get_board()[6:]
+            child_1 = copy.deepcopy(parents[0])
+            child_2 = copy.deepcopy(parents[1])
 
-            next_generation.append(child)
+            for row_index, row in enumerate(child_1.get_board()):
+                if random.uniform(0, 100) >= 20:
+                    child_1.get_board()[row_index] = parents[1].get_board()[row_index]
+                    child_2.get_board()[row_index] = parents[0].get_board()[row_index]
+
+            next_generation.append(child_1)
+            next_generation.append(child_2)
+
+        return next_generation
 
     def _mutation(self):
         pass
 
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
-        self._create_initial_population(self._population_size)
-        for member in self._population:
-            member.set_fitness(self._find_fitness("row", member.get_board()) +
-                               self._find_fitness("col", member.get_board()) +
-                               self._find_fitness("reg", member.get_board()))
-        self._selection_probability()
-        self._crossover()
+        self._initial_population()  # develop initial population - generation 0
+        print("Generation 0 Average Fitness", self._average_fitness)
+        # self.print_boards()
+
+        for run in range(500):
+            self._generation += 1
+            self._population = self._crossover()
+
+            for member in self._population:
+                member.set_fitness(self._find_fitness("row", member.get_board()) +
+                                   self._find_fitness("col", member.get_board()) +
+                                   self._find_fitness("reg", member.get_board()))
+            self._selection_probability()
+            self._fitness_average()
+            print("Generation {} Average Fitness: {}".format(self._generation, self._average_fitness))
