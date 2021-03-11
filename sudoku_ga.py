@@ -89,10 +89,25 @@ class SudokuGeneticAlgorithm(object):
 
         return fitness
 
+    def _selection_probability(self):
+        """Determines the probability that a member of the population is selected
+        for mating based on their fitness score."""
+        total_fitness = 0
+        for member in self._population:
+            total_fitness += member.get_fitness()
+
+        for member in self._population:
+            member.set_probability((member.get_fitness() / total_fitness) * 100)
+
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
-        self._create_initial_population(10)
+        self._create_initial_population(5)
         for member in self._population:
             member.set_fitness(self._find_fitness("row", member.get_board()) +
                                self._find_fitness("col", member.get_board()) +
                                self._find_fitness("reg", member.get_board()))
+
+        self._selection_probability()
+
+        for member in self._population:
+            print(member.get_probability())
