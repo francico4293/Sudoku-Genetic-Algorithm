@@ -5,9 +5,6 @@ import random
 import copy
 import sudoku_board
 
-# TODO: Continue working on find_fitness method
-# TODO: Create a solve function and make other function private
-
 
 class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
@@ -22,9 +19,11 @@ class SudokuGeneticAlgorithm(object):
             print()
 
     def get_population(self):
+        """Returns current members in the population."""
         return self._population
 
-    def _create_population(self, number: int) -> None:
+    def _create_initial_population(self, number: int) -> None:
+        """Creates initial population to begin genetic algorithm."""
         for population_size in range(number):
             self._population.append(copy.deepcopy(sudoku_board.SudokuBoard(self._board_template)))
 
@@ -35,9 +34,10 @@ class SudokuGeneticAlgorithm(object):
                         member.get_board()[row_index][value_index] = str(random.randint(1, 9))
 
     @staticmethod
-    def _board_transform(structure: str, member):
+    def _board_transform(structure: str, member: list) -> list:
+        """Transforms board columns and regions into row matrices."""
         member_transform = copy.deepcopy(member)
-        if structure == "row":
+        if structure == "row":  # TODO: Probably don't need this since nothing new is being returned
             return member
         elif structure == "col":
             for row_index, row in enumerate(member):
@@ -64,12 +64,10 @@ class SudokuGeneticAlgorithm(object):
                             member_transform[row_index - 1][value_index + 3] = value
             return member_transform
 
-    def _find_fitness(self, structure: str, member: list):
-        # fitness function is searching for unique values in rows, columns, regions - I think?
-        # if a value is unique, add 1 to fitness
+    def _find_fitness(self, structure: str, member: list) -> int:
+        """Determines the fitness score for each member in the population."""
         # target fitness is 243
-        # need to add row fitness, column fitness, and region fitness
-        if structure == "row":
+        if structure == "row":  # TODO: Probably don't need this
             member = self._board_transform(structure, member)
         elif structure == "col":
             member = self._board_transform(structure, member)
@@ -92,7 +90,8 @@ class SudokuGeneticAlgorithm(object):
         return fitness
 
     def solve(self):
-        self._create_population(10)
+        """Solves sudoku puzzle through implementation of genetic algorithm."""
+        self._create_initial_population(10)
         for member in self._population:
             member.set_fitness(self._find_fitness("row", member.get_board()) +
                                self._find_fitness("col", member.get_board()) +
