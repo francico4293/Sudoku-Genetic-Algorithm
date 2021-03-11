@@ -44,6 +44,25 @@ class SudokuGeneticAlgorithm(object):
                 for value_index, value in enumerate(row):
                     member_transform[value_index][row_index] = value
             return member_transform
+        else:
+            for row_index, row in enumerate(member):
+                for value_index, value in enumerate(row):
+                    if row_index == 0 or row_index == 3 or row_index == 6:
+                        if 2 < value_index <= 5:
+                            member_transform[row_index + 1][value_index - 3] = value
+                        else:
+                            member_transform[row_index + 2][value_index - 6] = value
+                    elif row_index == 1 or row_index == 4 or row_index == 7:
+                        if value_index <= 2:
+                            member_transform[row_index - 1][value_index + 3] = value
+                        elif value_index >= 6:
+                            member_transform[row_index + 1][value_index - 3] = value
+                    elif row_index == 2 or row_index == 5 or row_index == 8:
+                        if value_index <= 2:
+                            member_transform[row_index - 2][value_index + 6] = value
+                        elif 2 < value_index <= 5:
+                            member_transform[row_index - 1][value_index + 3] = value
+            return member_transform
 
     def _find_fitness(self, structure: str, member: list):
         # fitness function is searching for unique values in rows, columns, regions - I think?
@@ -55,7 +74,7 @@ class SudokuGeneticAlgorithm(object):
         elif structure == "col":
             member = self._board_transform(structure, member)
         else:
-            pass
+            member = self._board_transform(structure, member)
 
         fitness = 0
         for row in member:
@@ -75,8 +94,6 @@ class SudokuGeneticAlgorithm(object):
     def solve(self):
         self._create_population(10)
         for member in self._population:
-            print(self._find_fitness("row", member.get_board()))
-            print(self._find_fitness("col", member.get_board()))
             member.set_fitness(self._find_fitness("row", member.get_board()) +
-                               self._find_fitness("col", member.get_board()))
-            # break
+                               self._find_fitness("col", member.get_board()) +
+                               self._find_fitness("reg", member.get_board()))
