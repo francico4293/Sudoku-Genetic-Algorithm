@@ -24,7 +24,7 @@ class SudokuGeneticAlgorithm(object):
         for member in self.get_population():
             for row in member.get_board():
                 print(row)
-            print(member.get_fitness())
+            print(member.get_fitness(), member.get_probability())
             print()
 
     def get_population(self):
@@ -159,26 +159,45 @@ class SudokuGeneticAlgorithm(object):
 
         return next_generation
 
-    def _mutation(self):
+    def _sort_population(self):
+        ranked_members = []
         for member in self._population:
-            for row_index, row in enumerate(member.get_board()):
-                for value_index, value in enumerate(row):
-                    if [row_index, value_index] in self._fixed_values:
-                        continue
+            if not ranked_members:  # if ranked_population is empty
+                ranked_members.append((member, member.get_fitness()))
+            else:
+                for index, ranked_member in enumerate(ranked_members):
+                    if member.get_fitness() >= ranked_member[1]:
+                        ranked_members.insert(index, (member, member.get_fitness()))
+                        break
                     else:
-                        if random.uniform(0, 100) >= 80:
-                            member.get_board()[row_index][value_index] = str(random.randint(1, 9))
+                        continue
+                else:
+                    ranked_members.insert(len(ranked_members), (member, member.get_fitness()))
+        return ranked_members
+
+    def _selection(self):
+        ranked_population = []
+        ranked_members = self._sort_population()
+        while len(ranked_members) > self._population_size:
+            del ranked_members[len(ranked_members) - 1]
+
+        for ranked_member in ranked_members:
+            ranked_population.append(ranked_member[0])
+
+        return ranked_population
 
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
         self._initial_population()  # develop initial population - generation 0
         print("Generation 0 Average Fitness", self._average_fitness)
-        # self.print_boards()
 
+        # Main Loop:
         for run in range(100):
             self._generation += 1
-            self._population = self._crossover()
-            self._mutation()
+            children = self._crossover()
+            for child in children:
+                self._population.append(child)
+            self._population = self._selection()
 
             for member in self._population:
                 member.set_fitness(self._find_fitness("row", member.get_board()) +
