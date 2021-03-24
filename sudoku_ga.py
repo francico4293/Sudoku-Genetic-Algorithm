@@ -10,11 +10,11 @@ class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 750
+        self._population_size = 500
         self._generation = 0
         self._average_fitness = None
         self._crossover_rate = 70
-        self._mutation_rate = 10
+        self._mutation_rate = 3
         self._fixed_values = []
         self._best_solution = None
 
@@ -149,13 +149,23 @@ class SudokuGeneticAlgorithm(object):
             child_1 = copy.deepcopy(parents[0])
             child_2 = copy.deepcopy(parents[1])
 
+            # TODO: Randomly crossover cols, rows, sub-grids. Re-work parent to child crossover algorithm
+
+            child_2 = self._board_transform('col', child_2.get_board())  # transform child_2 to columns
+
             for row_index, row in enumerate(child_1.get_board()):
                 if random.uniform(0, 100) >= (100 - self._crossover_rate):
                     child_1.get_board()[row_index] = parents[1].get_board()[row_index]
-                    child_2.get_board()[row_index] = parents[0].get_board()[row_index]
+
+            col_parent = self._board_transform('col', parents[0].get_board())
+            for row_index, row in enumerate(child_2):
+                if random.uniform(0, 100) >= (100 - self._crossover_rate):
+                    child_2[row_index] = col_parent[row_index]
+
+            child_2 = self._board_transform('col', child_2)  # re-transform child_2 to correct form
 
             child_1 = self._mutate(copy.deepcopy(child_1))
-            child_2 = self._mutate(copy.deepcopy(child_2))
+            child_2 = self._mutate(copy.deepcopy(sudoku_board.SudokuBoard(child_2)))
 
             next_generation.append(child_1)
             next_generation.append(child_2)
@@ -181,10 +191,12 @@ class SudokuGeneticAlgorithm(object):
         return ranked_members
 
     def _selection(self):
+        """Selects next population based on most fit in consolidated population.
+        Consolidated population comes from merging current population with offspring."""
         ranked_population = []
         ranked_members = self._sort_population()
         while len(ranked_members) > self._population_size:
-            del ranked_members[len(ranked_members) - 3]  # TODO: Keep worst two of each gen?
+            del ranked_members[len(ranked_members) - 1]  # TODO: Keep worst two of each gen?
 
         for ranked_member in ranked_members:
             ranked_population.append(ranked_member[0])
@@ -192,6 +204,7 @@ class SudokuGeneticAlgorithm(object):
         return ranked_population
 
     def _mutate(self, child):
+        """Randomly mutates individual squares on sudoku grid. """
         for row_index, row in enumerate(child.get_board()):
             for value_index, value in enumerate(row):
                 if [row_index, value_index] not in self._fixed_values:
@@ -214,12 +227,11 @@ class SudokuGeneticAlgorithm(object):
         print("Generation 0 Average Fitness", self._average_fitness)
 
         # Main Loop:
-        while self._best_solution.get_fitness() != 243:
+        while self._average_fitness != float(self._best_solution.get_fitness()):
             self._generation += 1
             children = self._crossover()
             for child in children:
                 self._population.append(child)
-            self._population = self._selection()
 
             for member in self._population:
                 member.set_fitness(self._find_fitness("row", member.get_board()) +
@@ -230,6 +242,7 @@ class SudokuGeneticAlgorithm(object):
                 else:
                     if member.get_fitness() > self._best_solution.get_fitness():
                         self._best_solution = member
+            self._population = self._selection()
             self._selection_probability()
             self._fitness_average()
             print("Generation {} Average Fitness: {}. Current best fitness: {}."

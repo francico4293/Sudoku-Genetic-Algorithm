@@ -62,5 +62,5 @@ board_easy2 = [
 
 
 if __name__ == '__main__':
-    solution = sudoku_ga.SudokuGeneticAlgorithm(board_easy2)
+    solution = sudoku_ga.SudokuGeneticAlgorithm(board_medium2)
     solution.solve()
