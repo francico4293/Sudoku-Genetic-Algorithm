@@ -4,19 +4,17 @@
 import random
 import copy
 import sudoku_board
-# TODO: Add a data member to keep track of current iteration and the average fitness score.
-# TODO: Consider having some kind of initialize method to create generation 1 and then from there begin the actual algo
 
 
 class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 1500
+        self._population_size = 350
         self._generation = 0
         self._average_fitness = None
-        self._crossover_rate = 80
-        self._mutation_rate = 20
+        self._crossover_rate = 45
+        self._mutation_rate = 3
         self._fixed_values = []
         self._best_solution = None
 
@@ -46,7 +44,7 @@ class SudokuGeneticAlgorithm(object):
     def _board_transform(structure: str, member: list) -> list:
         """Transforms board columns and regions into row matrices."""
         member_transform = copy.deepcopy(member)
-        if structure == "row":  # TODO: Probably don't need this since nothing new is being returned
+        if structure == "row":
             return member
         elif structure == "col":
             for row_index, row in enumerate(member):
@@ -76,7 +74,7 @@ class SudokuGeneticAlgorithm(object):
     def _find_fitness(self, structure: str, member: list) -> int:
         """Determines the fitness score for each member in the population."""
         # target fitness is 243
-        if structure == "row":  # TODO: Probably don't need this
+        if structure == "row":
             member = self._board_transform(structure, member)
         elif structure == "col":
             member = self._board_transform(structure, member)
@@ -129,6 +127,8 @@ class SudokuGeneticAlgorithm(object):
             member.set_probability((member.get_fitness() / total_fitness) * 100)
 
     def _crossover(self):
+        """Breeds two parents based on roulette wheel selection to create two
+        offspring."""
         roulette_wheel = {}
         next_generation = []
 
@@ -150,9 +150,12 @@ class SudokuGeneticAlgorithm(object):
             child_2 = copy.deepcopy(parents[1])
 
             for row_index, row in enumerate(child_1.get_board()):
-                if random.uniform(0, 100) >= 20:
+                if random.uniform(0, 100) >= (100 - self._crossover_rate):
                     child_1.get_board()[row_index] = parents[1].get_board()[row_index]
                     child_2.get_board()[row_index] = parents[0].get_board()[row_index]
+
+            child_1 = self._mutate(copy.deepcopy(child_1))
+            child_2 = self._mutate(copy.deepcopy(child_2))
 
             next_generation.append(child_1)
             next_generation.append(child_2)
@@ -160,6 +163,8 @@ class SudokuGeneticAlgorithm(object):
         return next_generation
 
     def _sort_population(self):
+        """Sorts population from best to worst based on their individual fitness
+        functions."""
         ranked_members = []
         for member in self._population:
             if not ranked_members:  # if ranked_population is empty
@@ -179,20 +184,37 @@ class SudokuGeneticAlgorithm(object):
         ranked_population = []
         ranked_members = self._sort_population()
         while len(ranked_members) > self._population_size:
-            del ranked_members[len(ranked_members) - 1]
+            del ranked_members[len(ranked_members) - 3]  # TODO: Keep worst two of each gen?
 
         for ranked_member in ranked_members:
             ranked_population.append(ranked_member[0])
 
         return ranked_population
 
+    def _mutate(self, child):
+        for row_index, row in enumerate(child.get_board()):
+            for value_index, value in enumerate(row):
+                if [row_index, value_index] not in self._fixed_values:
+                    if random.randint(0, 100) >= (100 - self._mutation_rate):
+                        child.get_board()[row_index][value_index] = str(random.randint(1, 9))
+        return child
+
     def solve(self):
         """Solves sudoku puzzle through implementation of genetic algorithm."""
         self._initial_population()  # develop initial population - generation 0
+        for member in self._population:
+            member.set_fitness(self._find_fitness("row", member.get_board()) +
+                               self._find_fitness("col", member.get_board()) +
+                               self._find_fitness("reg", member.get_board()))
+            if self._best_solution is None:
+                self._best_solution = member
+            else:
+                if member.get_fitness() > self._best_solution.get_fitness():
+                    self._best_solution = member
         print("Generation 0 Average Fitness", self._average_fitness)
 
         # Main Loop:
-        for run in range(100):
+        while self._best_solution.get_fitness() != 243:
             self._generation += 1
             children = self._crossover()
             for child in children:
@@ -210,7 +232,8 @@ class SudokuGeneticAlgorithm(object):
                         self._best_solution = member
             self._selection_probability()
             self._fitness_average()
-            print("Generation {} Average Fitness: {}".format(self._generation, self._average_fitness))
+            print("Generation {} Average Fitness: {}. Current best fitness: {}."
+                  .format(self._generation, self._average_fitness, self._best_solution.get_fitness()))
 
         print(self._best_solution.get_fitness())
         for row in self._best_solution.get_board():
