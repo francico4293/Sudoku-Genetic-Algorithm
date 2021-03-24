@@ -10,11 +10,11 @@ class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 350
+        self._population_size = 750
         self._generation = 0
         self._average_fitness = None
-        self._crossover_rate = 45
-        self._mutation_rate = 3
+        self._crossover_rate = 70
+        self._mutation_rate = 10
         self._fixed_values = []
         self._best_solution = None
 
