@@ -10,10 +10,10 @@ class SudokuGeneticAlgorithm(object):
     def __init__(self, board):
         self._board_template = board
         self._population = []
-        self._population_size = 500
+        self._population_size = 300
         self._generation = 0
         self._average_fitness = None
-        self._crossover_rate = 70
+        self._crossover_rate = 60
         self._mutation_rate = 3
         self._fixed_values = []
         self._best_solution = None
@@ -149,24 +149,27 @@ class SudokuGeneticAlgorithm(object):
             child_1 = copy.deepcopy(parents[0])
             child_2 = copy.deepcopy(parents[1])
 
-            # TODO: Randomly crossover cols, rows, sub-grids. Re-work parent to child crossover algorithm
-
-            child_2 = self._board_transform('col', child_2.get_board())  # transform child_2 to columns
-
-            for row_index, row in enumerate(child_1.get_board()):
-                if random.uniform(0, 100) >= (100 - self._crossover_rate):
-                    child_1.get_board()[row_index] = parents[1].get_board()[row_index]
-
-            col_parent = self._board_transform('col', parents[0].get_board())
-            for row_index, row in enumerate(child_2):
-                if random.uniform(0, 100) >= (100 - self._crossover_rate):
-                    child_2[row_index] = col_parent[row_index]
-
-            child_2 = self._board_transform('col', child_2)  # re-transform child_2 to correct form
-
-            child_1 = self._mutate(copy.deepcopy(child_1))
-            child_2 = self._mutate(copy.deepcopy(sudoku_board.SudokuBoard(child_2)))
-
+            cross_type = random.randint(1, 4)
+            if cross_type == 1 or cross_type == 2:  # row crossover
+                for row_index, row in enumerate(child_1.get_board()):
+                    if random.uniform(0, 100) >= (100 - self._crossover_rate):
+                        child_1.get_board()[row_index] = parents[1].get_board()[row_index]
+                        child_2.get_board()[row_index] = parents[0].get_board()[row_index]
+                child_1 = self._mutate(copy.deepcopy(child_1))
+                child_2 = self._mutate(copy.deepcopy(child_2))
+            elif cross_type == 3 or cross_type == 4:  # column crossover
+                child_1 = self._board_transform('col', child_1.get_board())  # transform child_1 to columns
+                child_2 = self._board_transform('col', child_2.get_board())  # transform child_2 to columns
+                col_parent1 = self._board_transform('col', parents[0].get_board())
+                col_parent2 = self._board_transform('col', parents[1].get_board())
+                for row_index, row in enumerate(child_2):
+                    if random.uniform(0, 100) >= (100 - self._crossover_rate):
+                        child_1[row_index] = col_parent2[row_index]
+                        child_2[row_index] = col_parent1[row_index]
+                child_1 = self._board_transform('col', child_1)
+                child_2 = self._board_transform('col', child_2)
+                child_1 = self._mutate(copy.deepcopy(sudoku_board.SudokuBoard(child_1)))
+                child_2 = self._mutate(copy.deepcopy(sudoku_board.SudokuBoard(child_2)))
             next_generation.append(child_1)
             next_generation.append(child_2)
 
@@ -227,7 +230,32 @@ class SudokuGeneticAlgorithm(object):
         print("Generation 0 Average Fitness", self._average_fitness)
 
         # Main Loop:
-        while self._average_fitness != float(self._best_solution.get_fitness()):
+        while self._best_solution.get_fitness() != 243:
+            if (243 - self._best_solution.get_fitness()) <= 10:
+                self._crossover_rate = 95
+                self._mutation_rate = 1
+
+            if self._average_fitness == float(self._best_solution.get_fitness()):
+                print('POPULATION KILLED')
+                self._population = []
+                self._crossover_rate = 60
+                self._mutation_rate = 3
+                self._generation = 0
+                self._average_fitness = None
+                self._fixed_values = []
+                self._best_solution = None
+                self._initial_population()  # develop initial population - generation 0
+                for member in self._population:
+                    member.set_fitness(self._find_fitness("row", member.get_board()) +
+                                       self._find_fitness("col", member.get_board()) +
+                                       self._find_fitness("reg", member.get_board()))
+                    if self._best_solution is None:
+                        self._best_solution = member
+                    else:
+                        if member.get_fitness() > self._best_solution.get_fitness():
+                            self._best_solution = member
+                print("Generation 0 Average Fitness", self._average_fitness)
+
             self._generation += 1
             children = self._crossover()
             for child in children:
